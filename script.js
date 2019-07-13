@@ -1,7 +1,9 @@
 const OP_REG = /[\+\-\×\÷]{1}/;
 const SIGN_REG = /[\+\-]{1}/;
+const NEG_REG = /[\-]{1}/;
+const NON_NEG_REG = /[\+\×\÷]{1}/;
 
-$(document).ready(function () {
+$(document).ready(function() {
   let eq = ""; //The current equation
   let curr = "0"; //What is currently displayed
   let result = ""; //If the equals button has been pressed it will equal the result of the current equal, otherwise nothing
@@ -12,7 +14,7 @@ $(document).ready(function () {
     if (value == "A/C") {
       setCalcState("", "0", "");
     } else if (value == "CE") {
-      clearEntry(value);
+      clearEntry();
     } else if (OP_REG.test(value)) {
       handleOp(value);
     } else if (value == "=") {
@@ -20,7 +22,6 @@ $(document).ready(function () {
     } else if (value == ".") {
       handleDecimal(value);
     } else {
-      console.log("NUM");
       handleNum(value);
     }
     $("#eq_display").val(eq);
@@ -34,56 +35,72 @@ $(document).ready(function () {
   }
 
   //Clear the previous entry displayed on the screen
-  function clearEntry(value) {
+  function clearEntry() {
     if (eq.length > 0) {
       //Reset to the initial state if clearing directly after resolving an equation
       if (/[=]{1}/.test(eq)) {
-        reset();
-      }
-      //Remove all of the first number in the equation if that number, used in the current equation, was the result of the previous equation
+         setCalcState("", "0", "");
+      } 
       else if (result == curr && curr == eq) {
-          reset();
-        }
+        //Remove all of the first number in the equation if that number, used in the current equation, was the result of the previous equation
+         setCalcState("", "0", "");
+      } 
+      else if (result == "" && curr == eq && curr.length == 1) {
         //Reset the program to the initial state if the first item in the equation is deleted and this equation does not use the result of the previous equation
-        else if (result == "" && curr == eq && curr.length == 1) {
-            reset();
-          }
-          //If the current entry for the equation is a number with more than one digit, remove the one farthest from the right
-          else if (curr.length > 1) {
-              eq = eq.slice(0, eq.length - 1);
-              curr = curr.slice(0, curr.length - 1);
-            }
-            //If the current entry is an operator, the last one must be a number of unknown length
-            else if (OP_REG.test(curr)) {
-                let i = eq.length - 2;
-                let temp = "";
-                while (i >= 0 && OP_REG.test(eq[i]) == false) {
-                  temp = eq[i] + temp;
-                  i--;
-                }
-                eq = eq.slice(0, eq.length - 1);
-                curr = temp;
-              }
-              //If the current entry is a number, the last one must be an operator
-              else {
-                  eq = eq.slice(0, eq.length - 1);
-                  curr = eq[eq.length - 2];
-                }
+         setCalcState("", "0", "");
+      } 
+      else if (curr.length > 1) {
+        //If the current entry for the equation is a number with more than one digit, remove the one farthest from the right
+        eq = eq.slice(0, eq.length - 1);
+        curr = curr.slice(0, curr.length - 1);
+      } 
+      else if (OP_REG.test(curr)) {
+        //If the current entry is an operator, the last one must be a number of unknown length
+        let i = eq.length - 2;
+        let temp = "";
+        while (i >= 0 && OP_REG.test(eq[i]) == false) {
+          temp = eq[i] + temp;
+          i--;
+        }
+        eq = eq.slice(0, eq.length - 1);
+        curr = temp;
+      } 
+      else {
+        //If the current entry is a number, the last one must be an operator
+        eq = eq.slice(0, eq.length - 1);
+        curr = eq[eq.length - 1];         
+      }
     }
   }
 
   function handleOp(value) {
     let newEq = eq;
     let now = curr;
-    if (newEq.length == 0 && !SIGN_REG.test(value)) {//Cannot start an equation with multiplication or division
+    if (newEq.length == 0 && !SIGN_REG.test(value)) {
+      //Cannot start an equation with multiplication or division
       newEq = "";
-    } else if (OP_REG.test(newEq[newEq.length - 1])) {//If the previous button pressed was an operator, replace it with the current operator
+    } 
+    else if (NEG_REG.test(newEq[newEq.length - 1]) && NEG_REG.test(value) && OP_REG.test(newEq[newEq.length - 2]) ) {
+       
+    } 
+    else if (NEG_REG.test(newEq[newEq.length - 1]) && NON_NEG_REG.test(value)) {
+      if (OP_REG.test(newEq[newEq.length - 2])) {
+        newEq = newEq.slice(0, newEq.length - 2) + value;
+      } else {
+        newEq = newEq.slice(0, newEq.length - 1) + value;
+      }
+      now = value;
+    } 
+    else if (OP_REG.test(newEq[newEq.length - 1]) && NON_NEG_REG.test(value)) {
       newEq = newEq.slice(0, newEq.length - 1) + value;
       now = value;
-    } else if (result == now) {//If you are using the result of the previous equation in a new equation
+    } 
+    else if (result == now) {
+      //If you are using the result of the previous equation in a new equation
       newEq = result + value;
       now = value;
-    } else {
+    } 
+    else {
       newEq = newEq + value;
       now = value;
     }
@@ -91,13 +108,15 @@ $(document).ready(function () {
   }
 
   function handleEquals(value) {
-    let newEq = eq + value;
+    let newEq = eq;
     let now = curr;
     let final = result;
-    if (eq.length == 0) {//Cannot start an equation with an equals sign
+    if (eq.length == 0) {
+      //Cannot start an equation with an equals sign
       newEq = "";
-    } else
-    if (final != eq && !OP_REG.test(eq[eq.length - 1])) {//Can only finish an equation if it is not already finished or the previous button pressed was an operator
+    } else if (final != eq && !OP_REG.test(eq[eq.length - 1])) {
+      //Can only finish an equation if it is not already finished or the previous button pressed was not an operator
+      newEq = newEq + value;
       final = evaluate(newEq);
       newEq = newEq + final;
       now = final;
@@ -108,14 +127,14 @@ $(document).ready(function () {
   function handleDecimal(value) {
     let newEq = eq + value;
     let now = curr;
-    if (eq.length == 0) {//If the first button clicked was a decimal, make sure it has a zero in front of it
+    if (eq.length == 0) {
+      //If the first button clicked was a decimal, make sure it has a zero in front of it
       newEq = "0.";
       now = newEq;
-    } else
-    if (/\./.test(now) || result == now || OP_REG.test(eq[eq.length - 1])) {//Cannot click decimal button if the current number already has a decimal, the equation has ended or the last button pressed was an operator    
+    } else if (/\./.test(now) || result == now || OP_REG.test(eq[eq.length - 1])) {
+      //Cannot click decimal button if the current number already has a decimal, the equation has ended or the last button pressed was an operator
       newEq = eq;
-    } else
-    {
+    } else {
       now = now + ".";
     }
     setCalcState(newEq, now);
@@ -125,27 +144,26 @@ $(document).ready(function () {
     let newEq = eq + value;
     let now = curr;
     let final = result;
-    if (value == "0" && (now == "0" || now == "-0" || now == "+0")) {// only allow the first digit in a number to be zero (for decimal numbers) 
+    if (value == "0" && (now == "0" || now == "-0" || now == "+0")) {
+      // only allow the first digit in a number to be zero (for decimal numbers)
       newEq = eq;
-    } else
-    if (final == now) {// Just finished an equation but not using the result in the next equation
+    } else if (final == now) {
+      // Just finished an equation but not using the result in the next equation
       newEq = value;
       now = value;
       final = "";
-    } else
-    if (OP_REG.test(now) && now.length != eq.length) {//if the previous button clicked was an operator but was not the first button clicked
+    } else if (OP_REG.test(now) && now.length != eq.length) {
+      //if the previous button clicked was an operator but was not the first button clicked
       now = value;
-    } else
-    if ((now == "+0" || now == "-0") && value != "0") {// at start of equation do not allow leading zero
+    } else if ((now == "+0" || now == "-0") && value != "0") {
+      // at start of equation do not allow leading zero
       newEq = eq.slice(0, eq.length - 1) + value;
       now = now[0] + value;
-
-    } else
-    if (now == "0" && value != "0") {// during equation do not allow leading zeros
+    } else if (now == "0" && value != "0") {
+      // during equation do not allow leading zeros
       newEq = eq.slice(0, eq.length - 1) + value;
       now = value;
-    } else
-    {
+    } else {
       now = now + value;
     }
     setCalcState(newEq, now, final);
@@ -154,9 +172,12 @@ $(document).ready(function () {
   //Return the string representation of the next floating point number in the equation starting from position
   //startPos in the provided text
   function nextNumber(text, startPos) {
-    let num = 0;
+    let start = startPos;
     let end = text.length - 1;
-    for (let i = startPos; i < text.length; i++) {
+    if (NEG_REG.test(text[startPos])) {
+      start = start + 1;
+    }
+    for (let i = start; i < text.length; i++) {
       if (OP_REG.test(text[i]) || text[i] == "=") {
         end = i - 1;
         break;
