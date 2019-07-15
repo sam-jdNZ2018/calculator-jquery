@@ -76,31 +76,32 @@ $(document).ready(function() {
   function handleOp(value) {
     let newEq = eq;
     let now = curr;
-    if (newEq.length == 0 && !SIGN_REG.test(value)) {
-      //Cannot start an equation with multiplication or division
+   if (newEq.length == 0 && !SIGN_REG.test(value)) { //Cannot start an equation with multiplication or division
       newEq = "";
     } 
-    else if (NEG_REG.test(newEq[newEq.length - 1]) && NEG_REG.test(value) && OP_REG.test(newEq[newEq.length - 2]) ) {
+    //else if (NEG_REG.test(newEq[newEq.length - 1]) && NEG_REG.test(value) && OP_REG.test(newEq[newEq.length - 2]) ) {//Cannot have three operators in a row
        
-    } 
-    else if (NEG_REG.test(newEq[newEq.length - 1]) && NON_NEG_REG.test(value)) {
+    //} 
+    else if (NEG_REG.test(newEq[newEq.length - 1]) && OP_REG.test(value)) {//Cannot have three operators in a row
       if (OP_REG.test(newEq[newEq.length - 2])) {
         newEq = newEq.slice(0, newEq.length - 2) + value;
-      } else {
+      } else if(NEG_REG.test(value)){
+        newEq = newEq + value;
+        now = value;
+      }
+      else{
         newEq = newEq.slice(0, newEq.length - 1) + value;
       }
       now = value;
     } 
-    else if (OP_REG.test(newEq[newEq.length - 1]) && NON_NEG_REG.test(value)) {
+    else if (OP_REG.test(newEq[newEq.length - 1]) && NON_NEG_REG.test(value)) {//Cannot have two non negative operators in a row
       newEq = newEq.slice(0, newEq.length - 1) + value;
       now = value;
-    } 
-    else if (result == now) {
-      //If you are using the result of the previous equation in a new equation
-      newEq = result + value;
+    }     
+    else if (result == now) { //If you are using the result of the previous equation in a new equation
+      newEq = result  + value;
       now = value;
-    } 
-    else {
+    } else {
       newEq = newEq + value;
       now = value;
     }
